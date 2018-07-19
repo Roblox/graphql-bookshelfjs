@@ -1,6 +1,6 @@
 {
-  "name": "graphql-bookshelfjs",
-  "version": "1.0.8",
+  "name": "@seanlynch/graphql-bookshelfjs",
+  "version": "1.0.9-rblx.1",
   "description": "Using GraphQL with Bookshelf ORM",
   "main": "src/index.js",
   "scripts": {
@@ -10,18 +10,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/weyoss/graphql-bookshelfjs.git"
+    "url": "https://github.com/slynch-roblox/graphql-bookshelfjs.git"
   },
   "keywords": [
     "graphql",
     "bookshelf"
   ],
   "author": "Weyoss <weyoss@protonmail.com>",
+  "contributors": [
+    "Sean Lynch <slynch@roblox.com>"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/weyoss/graphql-bookshelfjs/issues"
+    "url": "https://github.com/seanlynch/graphql-bookshelfjs/issues"
   },
-  "homepage": "https://github.com/weyoss/graphql-bookshelfjs",
+  "homepage": "https://github.com/seanlynch/graphql-bookshelfjs",
   "dependencies": {
     "dataloader": "1.3.0",
     "shimmer": "1.1.0"
@@ -38,7 +41,7 @@
     "eslint-plugin-standard": "2.0.1",
     "graphql": "0.9.1",
     "knex": "0.12.7",
-    "mocha": "3.2.0",
+    "mocha": "^5.2.0",
     "mock-knex": "0.3.7",
     "sinon": "1.17.7"
   }
