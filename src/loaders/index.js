@@ -5,35 +5,6 @@ const shimmer = require('shimmer');
 
 /**
  *
- * @type {!object}
- */
-let context;
-
-/**
- *
- * @param {string} key
- * @returns {(DataLoader|boolean)}
- */
-function getLoader(key) {
-    context.loaders = context.loaders || {};
-    if (context.loaders.hasOwnProperty(key)) {
-        return context.loaders[key];
-    }
-    return false;
-}
-
-/**
- *
- * @param {string} key
- * @param {DataLoader} loader
- */
-function setLoader(key, loader) {
-    context.loaders = context.loaders || {};
-    context.loaders[key] = loader;
-}
-
-/**
- *
  * @param {object} model
  * @param {string} targetIdAttribute
  * @param {string} relationType
@@ -41,46 +12,35 @@ function setLoader(key, loader) {
  * @returns {DataLoader}
  */
 function modelLoader(model, targetIdAttribute, relationType, queryBuilder) {
-    const loaderKey = [
-        model.prototype.tableName,
-        targetIdAttribute,
-        relationType,
-        queryBuilder ? queryBuilder.toString() : '0',
-    ].join('|');
-
-    let loader = getLoader(loaderKey);
-    if (!loader) {
-        const collection = (relationType === 'hasMany');
-        loader = new DataLoader((keys) => {
-            return model.query((db) => {
-                Object.assign(db, queryBuilder || {});
-                db.where(targetIdAttribute, 'in', keys);
-            }).fetchAll().then((items) => {
-                const byTargetId = {};
-                items.forEach((item) => {
-                    if (collection) {
-                        const key = item.attributes[targetIdAttribute];
-                        byTargetId[key] = byTargetId[key] ?
-                            byTargetId[key] :
-                            [];
-                        byTargetId[key].push(item);
-                    } else byTargetId[item.attributes[targetIdAttribute]] = item;
-                });
-                return keys.map((key) => {
-                    if (byTargetId.hasOwnProperty(key)) {
-                        return byTargetId[key];
-                    }
-                    if (collection === true) {
-                        return [];
-                    }
-                    return null;
-                });
+    const collection = (relationType === 'hasMany');
+    const loader = new DataLoader((keys) => {
+        return model.query((db) => {
+            Object.assign(db, queryBuilder || {});
+            db.where(targetIdAttribute, 'in', keys);
+        }).fetchAll().then((items) => {
+            const byTargetId = {};
+            items.forEach((item) => {
+                if (collection) {
+                    const key = item.attributes[targetIdAttribute];
+                    byTargetId[key] = byTargetId[key] ?
+                        byTargetId[key] :
+                        [];
+                    byTargetId[key].push(item);
+                } else byTargetId[item.attributes[targetIdAttribute]] = item;
             });
-        }, {
-            cache: false,
+            return keys.map((key) => {
+                if (byTargetId.hasOwnProperty(key)) {
+                    return byTargetId[key];
+                }
+                if (collection === true) {
+                    return [];
+                }
+                return null;
+            });
         });
-        setLoader(loaderKey, loader);
-    }
+    }, {
+        cache: true,
+    });
     return loader;
 }
 
@@ -95,29 +55,19 @@ function modelLoader(model, targetIdAttribute, relationType, queryBuilder) {
  * @returns {DataLoader}
  */
 function belongsToManyLoader(model, joinTableName, foreignKey, otherKey, targetIdAttribute, queryBuilder) {
-    const loaderKey = [
-        model.prototype.tableName,
-        joinTableName,
-        foreignKey,
-        otherKey,
-        targetIdAttribute,
-        queryBuilder ? queryBuilder.toString() : '0',
-    ].join('|');
-    let loader = getLoader(loaderKey);
-    if (!loader) {
-        loader = new DataLoader((keys) => {
-            return model.query((db) => {
-                Object.assign(db, queryBuilder || {});
-                db.select([
-                    `${model.prototype.tableName}.*`,
-                    `${joinTableName}.${foreignKey}`,
-                    `${joinTableName}.${otherKey}`,
-                ]).innerJoin(
-                    joinTableName, `${model.prototype.tableName}.${targetIdAttribute}`,
-                    '=',
-                    `${joinTableName}.${otherKey}`)
+    const loader = new DataLoader((keys) => {
+        return model.query((db) => {
+            Object.assign(db, queryBuilder || {});
+            db.select([
+                `${model.prototype.tableName}.*`,
+                `${joinTableName}.${foreignKey}`,
+                `${joinTableName}.${otherKey}`,
+            ]).innerJoin(
+                joinTableName, `${model.prototype.tableName}.${targetIdAttribute}`,
+                '=',
+                `${joinTableName}.${otherKey}`)
                 .where(`${joinTableName}.${foreignKey}`, 'in', keys);
-            })
+        })
             .fetchAll()
             .then((items) => {
                 const byForeignKey = {};
@@ -135,11 +85,9 @@ function belongsToManyLoader(model, joinTableName, foreignKey, otherKey, targetI
                     return [];
                 });
             });
-        }, {
-            cache: false,
-        });
-        setLoader(loaderKey, loader);
-    }
+    }, {
+        cache: true,
+    });
     return loader;
 }
 
@@ -223,9 +171,6 @@ function belongsToMany(target) {
  * @param {object} target
  */
 module.exports = function loaders(target) {
-    context = this;
-    context.__bookshelfResolver = context.__bookshelfResolver || {};
-    context = context.__bookshelfResolver;
     if (target.relatedData) {
         switch (target.relatedData.type) {
         case 'belongsTo':
